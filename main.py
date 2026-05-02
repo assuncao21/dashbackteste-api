@@ -143,6 +143,60 @@ def receber_operacao(data: dict):
                 %(HoraReferencia)s,
                 %(BarrasParaVarrer)s
             )
+            ON CONFLICT (id_operacao)
+            DO UPDATE SET
+                id_setup = EXCLUDED.id_setup,
+                id_lote_importacao = EXCLUDED.id_lote_importacao,
+                parametros_setup = EXCLUDED.parametros_setup,
+                versao_ea = EXCLUDED.versao_ea,
+                data_hora_entrada = EXCLUDED.data_hora_entrada,
+                data_hora_saida = EXCLUDED.data_hora_saida,
+                utc_local = EXCLUDED.utc_local,
+                utc_corretora = EXCLUDED.utc_corretora,
+                ativo = EXCLUDED.ativo,
+                timeframe = EXCLUDED.timeframe,
+                tipo_ordem = EXCLUDED.tipo_ordem,
+                lote = EXCLUDED.lote,
+                preco_entrada = EXCLUDED.preco_entrada,
+                preco_saida = EXCLUDED.preco_saida,
+                stop_loss = EXCLUDED.stop_loss,
+                take_profit = EXCLUDED.take_profit,
+                spread = EXCLUDED.spread,
+                spread_historico_entrada = EXCLUDED.spread_historico_entrada,
+                spread_historico_saida = EXCLUDED.spread_historico_saida,
+                comissao_por_lote_round_turn = EXCLUDED.comissao_por_lote_round_turn,
+                comissao = EXCLUDED.comissao,
+                resultado_pips = EXCLUDED.resultado_pips,
+                max_favoravel_pips = EXCLUDED.max_favoravel_pips,
+                max_contra_pips = EXCLUDED.max_contra_pips,
+                ganho_nao_concluido_por_spread = EXCLUDED.ganho_nao_concluido_por_spread,
+                resultado_bruto = EXCLUDED.resultado_bruto,
+                resultado_financeiro = EXCLUDED.resultado_financeiro,
+                saldo_antes = EXCLUDED.saldo_antes,
+                saldo_depois = EXCLUDED.saldo_depois,
+                estrategia = EXCLUDED.estrategia,
+                indicador = EXCLUDED.indicador,
+                hora_entrada = EXCLUDED.hora_entrada,
+                dia_semana = EXCLUDED.dia_semana,
+                status_operacao = EXCLUDED.status_operacao,
+                tipo_de_fechamento = EXCLUDED.tipo_de_fechamento,
+                sma_filtro = EXCLUDED.sma_filtro,
+                distancia_preco_sma = EXCLUDED.distancia_preco_sma,
+                rsi_valor = EXCLUDED.rsi_valor,
+                adx_valor = EXCLUDED.adx_valor,
+                volume_valor = EXCLUDED.volume_valor,
+                filtro_sma_status = EXCLUDED.filtro_sma_status,
+                filtro_rsi_status = EXCLUDED.filtro_rsi_status,
+                filtro_adx_status = EXCLUDED.filtro_adx_status,
+                filtro_volume_status = EXCLUDED.filtro_volume_status,
+                filtros_aprovados = EXCLUDED.filtros_aprovados,
+                modo_entrada = EXCLUDED.modo_entrada,
+                stop_loss_pontos = EXCLUDED.stop_loss_pontos,
+                take_profit_pontos = EXCLUDED.take_profit_pontos,
+                data_referencia = EXCLUDED.data_referencia,
+                hora_referencia = EXCLUDED.hora_referencia,
+                barras_para_varrer = EXCLUDED.barras_para_varrer,
+                criado_em = now()
         """, data)
 
         conn.commit()
@@ -151,7 +205,7 @@ def receber_operacao(data: dict):
 
         return {
             "status": "ok",
-            "mensagem": "Operação registrada com sucesso",
+            "mensagem": "Operação registrada/atualizada com sucesso",
             "id_operacao": data.get("IDOperacao")
         }
 
