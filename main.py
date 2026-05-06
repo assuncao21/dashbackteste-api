@@ -250,22 +250,22 @@ def listar_setups():
 
         cur.execute("""
             SELECT
-                id_setup,
-                ativo,
-                timeframe,
+                id_setup_grupo,
+                nome_setup,
                 estrategia,
+                timeframe,
                 indicador,
                 parametros_setup,
                 COUNT(*) AS total_operacoes,
                 MIN(data_hora_entrada) AS primeira_operacao,
                 MAX(data_hora_entrada) AS ultima_operacao
             FROM operacoes
-            WHERE id_setup IS NOT NULL
+            WHERE id_setup_grupo IS NOT NULL
             GROUP BY
-                id_setup,
-                ativo,
-                timeframe,
+                id_setup_grupo,
+                nome_setup,
                 estrategia,
+                timeframe,
                 indicador,
                 parametros_setup
             ORDER BY ultima_operacao DESC
