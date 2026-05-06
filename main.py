@@ -255,7 +255,6 @@ def listar_setups():
                 estrategia,
                 timeframe,
                 indicador,
-                parametros_setup,
                 COUNT(*) AS total_operacoes,
                 MIN(data_hora_entrada) AS primeira_operacao,
                 MAX(data_hora_entrada) AS ultima_operacao
@@ -266,8 +265,7 @@ def listar_setups():
                 nome_setup,
                 estrategia,
                 timeframe,
-                indicador,
-                parametros_setup
+                indicador
             ORDER BY ultima_operacao DESC
         """)
 
