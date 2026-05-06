@@ -236,6 +236,45 @@ def simular(data: dict):
         ]
     }
 
+@app.get("/setups")
+def listar_setups():
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT
+                id_setup,
+                ativo,
+                timeframe,
+                estrategia,
+                indicador,
+                parametros_setup,
+                COUNT(*) AS total_operacoes,
+                MIN(data_hora_entrada) AS primeira_operacao,
+                MAX(data_hora_entrada) AS ultima_operacao
+            FROM operacoes
+            WHERE id_setup IS NOT NULL
+            GROUP BY
+                id_setup,
+                ativo,
+                timeframe,
+                estrategia,
+                indicador,
+                parametros_setup
+            ORDER BY ultima_operacao DESC
+        """)
+
+        dados = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return dados
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/operacoes")
 def listar_operacoes(limit: int = 100):
