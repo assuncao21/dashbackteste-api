@@ -249,25 +249,27 @@ def listar_setups():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("""
-            SELECT
-                id_setup_grupo,
-                nome_setup,
-                estrategia,
-                timeframe,
-                indicador,
-                COUNT(*) AS total_operacoes,
-                MIN(data_hora_entrada) AS primeira_operacao,
-                MAX(data_hora_entrada) AS ultima_operacao
-            FROM operacoes
-            WHERE id_setup_grupo IS NOT NULL
-            GROUP BY
-                id_setup_grupo,
-                nome_setup,
-                estrategia,
-                timeframe,
-                indicador
-            ORDER BY ultima_operacao DESC
-        """)
+    SELECT
+        id_setup_grupo,
+        nome_setup,
+        estrategia,
+        timeframe,
+        indicador,
+        STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
+        COUNT(*) AS total_operacoes,
+        MIN(data_hora_entrada) AS primeira_operacao,
+        MAX(data_hora_entrada) AS ultima_operacao,
+        MAX(parametros_setup) AS parametros_setup
+    FROM operacoes
+    WHERE id_setup_grupo IS NOT NULL
+    GROUP BY
+        id_setup_grupo,
+        nome_setup,
+        estrategia,
+        timeframe,
+        indicador
+    ORDER BY ultima_operacao DESC
+""")
 
         dados = cur.fetchall()
 
