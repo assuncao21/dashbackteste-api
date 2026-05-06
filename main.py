@@ -213,6 +213,30 @@ def receber_operacao(data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/simular")
+def simular(data: dict):
+
+    return {
+        "resumo": {
+            "score": 74,
+            "win_rate": "61%",
+            "drawdown": "12%",
+            "total_operacoes": 87
+        },
+        "curva_capital": [
+            1000,
+            1012,
+            1005,
+            1020,
+            1045
+        ],
+        "alertas": [
+            "Amostra moderada",
+            "Drawdown aceitável"
+        ]
+    }
+
+
 @app.get("/operacoes")
 def listar_operacoes(limit: int = 100):
     try:
