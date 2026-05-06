@@ -38,6 +38,8 @@ def receber_operacao(data: dict):
             INSERT INTO operacoes (
                 id_setup,
                 id_operacao,
+                id_setup_grupo,
+                nome_setup,
                 id_lote_importacao,
                 parametros_setup,
                 versao_ea,
@@ -92,6 +94,8 @@ def receber_operacao(data: dict):
             VALUES (
                 %(IDSetup)s,
                 %(IDOperacao)s,
+                %(IDSetupGrupo)s,
+                %(NomeSetup)s,
                 %(IDLoteImportacao)s,
                 %(ParametrosSetup)s,
                 %(VersaoEA)s,
@@ -146,6 +150,8 @@ def receber_operacao(data: dict):
             ON CONFLICT (id_operacao)
             DO UPDATE SET
                 id_setup = EXCLUDED.id_setup,
+                id_setup_grupo = EXCLUDED.id_setup_grupo,
+                nome_setup = EXCLUDED.nome_setup,
                 id_lote_importacao = EXCLUDED.id_lote_importacao,
                 parametros_setup = EXCLUDED.parametros_setup,
                 versao_ea = EXCLUDED.versao_ea,
