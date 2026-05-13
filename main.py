@@ -89,7 +89,18 @@ def receber_operacao(data: dict):
                 take_profit_pontos,
                 data_referencia,
                 hora_referencia,
-                barras_para_varrer
+                barras_para_varrer,
+                usar_filtro_sma,
+                periodo_sma_filtro,
+                usar_filtro_rsi,
+                periodo_rsi,
+                rsi_compra_min,
+                rsi_venda_max,
+                usar_filtro_adx,
+                periodo_adx,
+                adx_minimo,
+                usar_filtro_volume,
+                volume_minimo
             )
             VALUES (
                 %(IDSetup)s,
@@ -145,7 +156,18 @@ def receber_operacao(data: dict):
                 %(TakeProfitPontos)s,
                 %(DataReferencia)s,
                 %(HoraReferencia)s,
-                %(BarrasParaVarrer)s
+                %(BarrasParaVarrer)s,
+                %(UsarFiltroSMA)s,
+                %(PeriodoSMAFiltro)s,
+                %(UsarFiltroRSI)s,
+                %(PeriodoRSI)s,
+                %(RSICompraMin)s,
+                %(RSIVendaMax)s,
+                %(UsarFiltroADX)s,
+                %(PeriodoADX)s,
+                %(ADXMinimo)s,
+                %(UsarFiltroVolume)s,
+                %(VolumeMinimo)s
             )
             ON CONFLICT (id_operacao)
             DO UPDATE SET
@@ -202,6 +224,17 @@ def receber_operacao(data: dict):
                 data_referencia = EXCLUDED.data_referencia,
                 hora_referencia = EXCLUDED.hora_referencia,
                 barras_para_varrer = EXCLUDED.barras_para_varrer,
+                usar_filtro_sma = EXCLUDED.usar_filtro_sma,
+                periodo_sma_filtro = EXCLUDED.periodo_sma_filtro,
+                usar_filtro_rsi = EXCLUDED.usar_filtro_rsi,
+                periodo_rsi = EXCLUDED.periodo_rsi,
+                rsi_compra_min = EXCLUDED.rsi_compra_min,
+                rsi_venda_max = EXCLUDED.rsi_venda_max,
+                usar_filtro_adx = EXCLUDED.usar_filtro_adx,
+                periodo_adx = EXCLUDED.periodo_adx,
+                adx_minimo = EXCLUDED.adx_minimo,
+                usar_filtro_volume = EXCLUDED.usar_filtro_volume,
+                volume_minimo = EXCLUDED.volume_minimo,
                 criado_em = now()
         """, data)
 
