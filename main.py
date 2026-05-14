@@ -284,23 +284,29 @@ def listar_setups():
         cur.execute("""
     SELECT
         id_setup_grupo,
-        nome_setup,
-        estrategia,
-        timeframe,
-        indicador,
+        MAX(nome_setup) AS nome_setup,
+        MAX(estrategia) AS estrategia,
+        MAX(timeframe) AS timeframe,
+        MAX(indicador) AS indicador,
         STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
         COUNT(*) AS total_operacoes,
         MIN(data_hora_entrada) AS primeira_operacao,
-        MAX(data_hora_entrada) AS ultima_operacao,
-        MAX(parametros_setup) AS parametros_setup
+        MAX(data_hora_saida) AS ultima_operacao,
+        MAX(parametros_setup) AS parametros_setup,
+
+        JSON_AGG(
+            DISTINCT JSONB_BUILD_OBJECT(
+                'id_lote_importacao', id_lote_importacao,
+                'data_execucao_coleta', criado_em,
+                'data_referencia', data_referencia,
+                'hora_referencia', hora_referencia,
+                'barras_para_varrer', barras_para_varrer
+            )
+        ) AS coletas
+
     FROM operacoes
     WHERE id_setup_grupo IS NOT NULL
-    GROUP BY
-        id_setup_grupo,
-        nome_setup,
-        estrategia,
-        timeframe,
-        indicador
+    GROUP BY id_setup_grupo
     ORDER BY ultima_operacao DESC
 """)
 
