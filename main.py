@@ -354,7 +354,12 @@ def listar_setups():
 
             COUNT(*) AS total_operacoes,
                     
-            COALESCE(SUM(resultado_pips), 0) AS resultado_pips_total,        
+            COALESCE(SUM(resultado_pips), 0) AS resultado_pips_total,
+
+            ROUND(
+    COALESCE(SUM(resultado_pips), 0) / NULLIF(COUNT(*), 0),
+    2
+) AS expectativa_pips,                
 
             SUM(CASE WHEN status_operacao = 'WIN' THEN 1 ELSE 0 END) AS wins,
             SUM(CASE WHEN status_operacao = 'LOSS' THEN 1 ELSE 0 END) AS losses,
