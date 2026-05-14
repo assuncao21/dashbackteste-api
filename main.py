@@ -295,7 +295,11 @@ def listar_setups():
             COUNT(*) AS total_operacoes,
             MIN(data_hora_entrada) AS primeira_operacao,
             MAX(data_hora_saida) AS ultima_operacao,
-            MAX(parametros_setup) AS parametros_setup
+            MAX(parametros_setup) AS parametros_setup,
+            MAX(lote) AS lote,
+            MAX(stop_loss_pontos) AS stop_loss_pontos,
+            MAX(take_profit_pontos) AS take_profit_pontos,
+            MAX(comissao_por_lote_round_turn) AS comissao_por_lote_round_turn
         FROM operacoes
         WHERE id_setup_grupo IS NOT NULL
         GROUP BY id_setup_grupo
@@ -313,6 +317,9 @@ def listar_setups():
                     'barras_para_varrer', barras_para_varrer,
                     'primeira_operacao', primeira_operacao,
                     'ultima_operacao', ultima_operacao,
+                    'total_operacoes', total_operacoes,
+                    'primeira_operacao', primeira_operacao,
+                    'ultima_operacao', ultima_operacao,
                     'total_operacoes', total_operacoes
                 )
                 ORDER BY data_execucao_coleta DESC
@@ -321,6 +328,11 @@ def listar_setups():
             SELECT
                 id_setup_grupo,
                 id_lote_importacao,
+                    
+                MIN(data_hora_entrada) AS primeira_operacao,
+                MAX(data_hora_saida) AS ultima_operacao,
+                COUNT(*) AS total_operacoes,
+                        
                 MIN(criado_em) AS data_execucao_coleta,
                 MAX(data_referencia) AS data_referencia,
                 MAX(hora_referencia) AS hora_referencia,
