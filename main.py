@@ -282,32 +282,64 @@ def listar_setups():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("""
+    WITH setups AS (
+        SELECT
+            id_setup_grupo,
+            MAX(nome_setup) AS nome_setup,
+            MAX(estrategia) AS estrategia,
+            MAX(timeframe) AS timeframe,
+            MAX(indicador) AS indicador,
+            STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
+            COUNT(*) AS total_operacoes,
+            MIN(data_hora_entrada) AS primeira_operacao,
+            MAX(data_hora_saida) AS ultima_operacao,
+            MAX(parametros_setup) AS parametros_setup
+        FROM operacoes
+        WHERE id_setup_grupo IS NOT NULL
+        GROUP BY id_setup_grupo
+    ),
+
+    coletas AS (
+        SELECT
+            id_setup_grupo,
+            JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'id_lote_importacao', id_lote_importacao,
+                    'data_execucao_coleta', data_execucao_coleta,
+                    'data_referencia', data_referencia,
+                    'hora_referencia', hora_referencia,
+                    'barras_para_varrer', barras_para_varrer,
+                    'primeira_operacao', primeira_operacao,
+                    'ultima_operacao', ultima_operacao,
+                    'total_operacoes', total_operacoes
+                )
+                ORDER BY data_execucao_coleta DESC
+            ) AS coletas
+        FROM (
+            SELECT
+                id_setup_grupo,
+                id_lote_importacao,
+                MIN(criado_em) AS data_execucao_coleta,
+                MAX(data_referencia) AS data_referencia,
+                MAX(hora_referencia) AS hora_referencia,
+                MAX(barras_para_varrer) AS barras_para_varrer,
+                MIN(data_hora_entrada) AS primeira_operacao,
+                MAX(data_hora_saida) AS ultima_operacao,
+                COUNT(*) AS total_operacoes
+            FROM operacoes
+            WHERE id_setup_grupo IS NOT NULL
+            GROUP BY id_setup_grupo, id_lote_importacao
+        ) c
+        GROUP BY id_setup_grupo
+    )
+
     SELECT
-        id_setup_grupo,
-        MAX(nome_setup) AS nome_setup,
-        MAX(estrategia) AS estrategia,
-        MAX(timeframe) AS timeframe,
-        MAX(indicador) AS indicador,
-        STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
-        COUNT(*) AS total_operacoes,
-        MIN(data_hora_entrada) AS primeira_operacao,
-        MAX(data_hora_saida) AS ultima_operacao,
-        MAX(parametros_setup) AS parametros_setup,
-
-        JSON_AGG(
-            DISTINCT JSONB_BUILD_OBJECT(
-                'id_lote_importacao', id_lote_importacao,
-                'data_execucao_coleta', criado_em,
-                'data_referencia', data_referencia,
-                'hora_referencia', hora_referencia,
-                'barras_para_varrer', barras_para_varrer
-            )
-        ) AS coletas
-
-    FROM operacoes
-    WHERE id_setup_grupo IS NOT NULL
-    GROUP BY id_setup_grupo
-    ORDER BY ultima_operacao DESC
+        s.*,
+        c.coletas
+    FROM setups s
+    LEFT JOIN coletas c
+        ON s.id_setup_grupo = c.id_setup_grupo
+    ORDER BY s.ultima_operacao DESC
 """)
 
         dados = cur.fetchall()
