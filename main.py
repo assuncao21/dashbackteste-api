@@ -342,7 +342,7 @@ def listar_setups():
                     'utc_local', utc_local,
                     'utc_corretora', utc_corretora
                 )
-                ORDER BY data_execucao_coleta DESC
+                ORDER BY data_referencia DESC, hora_referencia DESC
             ) AS coletas
         FROM coletas_base
         GROUP BY id_setup_grupo
