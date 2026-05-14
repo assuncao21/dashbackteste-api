@@ -297,7 +297,7 @@ def listar_setups():
             MAX(stop_loss_pontos) AS stop_loss_pontos,
             MAX(take_profit_pontos) AS take_profit_pontos,
             MAX(comissao_por_lote_round_turn) AS comissao_por_lote_round_turn,
-                    
+
             MAX(usar_filtro_adx::int) AS usar_filtro_adx,
             MAX(periodo_adx) AS periodo_adx,
             MAX(adx_minimo) AS adx_minimo,
@@ -314,10 +314,41 @@ def listar_setups():
             MAX(volume_minimo) AS volume_minimo,
 
             STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
+
             COUNT(*) AS total_operacoes,
+
+            SUM(
+                CASE
+                    WHEN status_operacao = 'WIN'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS wins,
+
+            SUM(
+                CASE
+                    WHEN status_operacao = 'LOSS'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS losses,
+
+            ROUND(
+                100.0 *
+                SUM(
+                    CASE
+                        WHEN status_operacao = 'WIN'
+                        THEN 1
+                        ELSE 0
+                    END
+                ) / NULLIF(COUNT(*), 0),
+                2
+            ) AS winrate,
+
             MIN(data_hora_entrada) AS primeira_operacao,
             MAX(data_hora_saida) AS ultima_operacao,
             MAX(parametros_setup) AS parametros_setup
+
         FROM operacoes
         WHERE id_setup_grupo IS NOT NULL
         GROUP BY id_setup_grupo
@@ -346,26 +377,26 @@ def listar_setups():
             id_setup_grupo,
             JSON_AGG(
                 JSON_BUILD_OBJECT(
-    'id_lote_importacao', id_lote_importacao,
-    'data_execucao_coleta', data_execucao_coleta,
-    'data_referencia', data_referencia,
-    'hora_referencia', hora_referencia,
-    'data_hora_referencia',
-        (
-            REPLACE(data_referencia, '.', '-') || ' ' ||
-            LPAD(hora_referencia::text, 2, '0') || ':00:00'
-        ),
-    'barras_para_varrer', barras_para_varrer,
-    'primeira_operacao', primeira_operacao_coleta,
-    'ultima_operacao', ultima_operacao_coleta,
-    'total_operacoes', total_operacoes_coleta,
-    'utc_local', utc_local,
-    'utc_corretora', utc_corretora
-)
+                    'id_lote_importacao', id_lote_importacao,
+                    'data_execucao_coleta', data_execucao_coleta,
+                    'data_referencia', data_referencia,
+                    'hora_referencia', hora_referencia,
+                    'data_hora_referencia',
+                        (
+                            REPLACE(data_referencia, '.', '-') || ' ' ||
+                            LPAD(hora_referencia::text, 2, '0') || ':00:00'
+                        ),
+                    'barras_para_varrer', barras_para_varrer,
+                    'primeira_operacao', primeira_operacao_coleta,
+                    'ultima_operacao', ultima_operacao_coleta,
+                    'total_operacoes', total_operacoes_coleta,
+                    'utc_local', utc_local,
+                    'utc_corretora', utc_corretora
+                )
                 ORDER BY
-    data_referencia DESC,
-    hora_referencia DESC,
-    data_execucao_coleta DESC
+                    data_referencia DESC,
+                    hora_referencia DESC,
+                    data_execucao_coleta DESC
             ) AS coletas
         FROM coletas_base
         GROUP BY id_setup_grupo
