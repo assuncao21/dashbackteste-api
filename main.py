@@ -353,6 +353,8 @@ def listar_setups():
             STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
 
             COUNT(*) AS total_operacoes,
+                    
+            COALESCE(SUM(resultado_pips), 0) AS resultado_pips_total,        
 
             SUM(CASE WHEN status_operacao = 'WIN' THEN 1 ELSE 0 END) AS wins,
             SUM(CASE WHEN status_operacao = 'LOSS' THEN 1 ELSE 0 END) AS losses,
