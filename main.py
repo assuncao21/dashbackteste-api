@@ -331,17 +331,22 @@ def listar_setups():
             id_setup_grupo,
             JSON_AGG(
                 JSON_BUILD_OBJECT(
-                    'id_lote_importacao', id_lote_importacao,
-                    'data_execucao_coleta', data_execucao_coleta,
-                    'data_referencia', data_referencia,
-                    'hora_referencia', hora_referencia,
-                    'barras_para_varrer', barras_para_varrer,
-                    'primeira_operacao', primeira_operacao_coleta,
-                    'ultima_operacao', ultima_operacao_coleta,
-                    'total_operacoes', total_operacoes_coleta,
-                    'utc_local', utc_local,
-                    'utc_corretora', utc_corretora
-                )
+    'id_lote_importacao', id_lote_importacao,
+    'data_execucao_coleta', data_execucao_coleta,
+    'data_referencia', data_referencia,
+    'hora_referencia', hora_referencia,
+    'data_hora_referencia',
+        (
+            REPLACE(data_referencia, '.', '-') || ' ' ||
+            LPAD(hora_referencia::text, 2, '0') || ':00:00'
+        ),
+    'barras_para_varrer', barras_para_varrer,
+    'primeira_operacao', primeira_operacao_coleta,
+    'ultima_operacao', ultima_operacao_coleta,
+    'total_operacoes', total_operacoes_coleta,
+    'utc_local', utc_local,
+    'utc_corretora', utc_corretora
+)
                 ORDER BY
     data_referencia DESC,
     hora_referencia DESC,
