@@ -289,20 +289,41 @@ def listar_setups():
             MAX(estrategia) AS estrategia,
             MAX(timeframe) AS timeframe,
             MAX(indicador) AS indicador,
+
             MAX(utc_local) AS utc_local,
             MAX(utc_corretora) AS utc_corretora,
+
+            MAX(lote) AS lote,
+            MAX(stop_loss_pontos) AS stop_loss_pontos,
+            MAX(take_profit_pontos) AS take_profit_pontos,
+            MAX(comissao_por_lote_round_turn) AS comissao_por_lote_round_turn,
+
             STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
             COUNT(*) AS total_operacoes,
             MIN(data_hora_entrada) AS primeira_operacao,
             MAX(data_hora_saida) AS ultima_operacao,
-            MAX(parametros_setup) AS parametros_setup,
-            MAX(lote) AS lote,
-            MAX(stop_loss_pontos) AS stop_loss_pontos,
-            MAX(take_profit_pontos) AS take_profit_pontos,
-            MAX(comissao_por_lote_round_turn) AS comissao_por_lote_round_turn
+            MAX(parametros_setup) AS parametros_setup
         FROM operacoes
         WHERE id_setup_grupo IS NOT NULL
         GROUP BY id_setup_grupo
+    ),
+
+    coletas_base AS (
+        SELECT
+            id_setup_grupo,
+            id_lote_importacao,
+            MIN(criado_em) AS data_execucao_coleta,
+            MAX(data_referencia) AS data_referencia,
+            MAX(hora_referencia) AS hora_referencia,
+            MAX(barras_para_varrer) AS barras_para_varrer,
+            MIN(data_hora_entrada) AS primeira_operacao_coleta,
+            MAX(data_hora_saida) AS ultima_operacao_coleta,
+            COUNT(*) AS total_operacoes_coleta,
+            MAX(utc_local) AS utc_local,
+            MAX(utc_corretora) AS utc_corretora
+        FROM operacoes
+        WHERE id_setup_grupo IS NOT NULL
+        GROUP BY id_setup_grupo, id_lote_importacao
     ),
 
     coletas AS (
@@ -315,35 +336,15 @@ def listar_setups():
                     'data_referencia', data_referencia,
                     'hora_referencia', hora_referencia,
                     'barras_para_varrer', barras_para_varrer,
-                    'primeira_operacao', primeira_operacao,
-                    'ultima_operacao', ultima_operacao,
-                    'total_operacoes', total_operacoes,
-                    'primeira_operacao', primeira_operacao,
-                    'ultima_operacao', ultima_operacao,
-                    'total_operacoes', total_operacoes
+                    'primeira_operacao', primeira_operacao_coleta,
+                    'ultima_operacao', ultima_operacao_coleta,
+                    'total_operacoes', total_operacoes_coleta,
+                    'utc_local', utc_local,
+                    'utc_corretora', utc_corretora
                 )
                 ORDER BY data_execucao_coleta DESC
             ) AS coletas
-        FROM (
-            SELECT
-                id_setup_grupo,
-                id_lote_importacao,
-                    
-                MIN(data_hora_entrada) AS primeira_operacao,
-                MAX(data_hora_saida) AS ultima_operacao,
-                COUNT(*) AS total_operacoes,
-                        
-                MIN(criado_em) AS data_execucao_coleta,
-                MAX(data_referencia) AS data_referencia,
-                MAX(hora_referencia) AS hora_referencia,
-                MAX(barras_para_varrer) AS barras_para_varrer,
-                MIN(data_hora_entrada) AS primeira_operacao,
-                MAX(data_hora_saida) AS ultima_operacao,
-                COUNT(*) AS total_operacoes
-            FROM operacoes
-            WHERE id_setup_grupo IS NOT NULL
-            GROUP BY id_setup_grupo, id_lote_importacao
-        ) c
+        FROM coletas_base
         GROUP BY id_setup_grupo
     )
 
