@@ -289,6 +289,8 @@ def listar_setups():
             MAX(estrategia) AS estrategia,
             MAX(timeframe) AS timeframe,
             MAX(indicador) AS indicador,
+            MAX(utc_local) AS utc_local,
+            MAX(utc_corretora) AS utc_corretora,
             STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
             COUNT(*) AS total_operacoes,
             MIN(data_hora_entrada) AS primeira_operacao,
