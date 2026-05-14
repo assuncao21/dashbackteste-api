@@ -297,6 +297,21 @@ def listar_setups():
             MAX(stop_loss_pontos) AS stop_loss_pontos,
             MAX(take_profit_pontos) AS take_profit_pontos,
             MAX(comissao_por_lote_round_turn) AS comissao_por_lote_round_turn,
+                    
+            MAX(usar_filtro_adx::int) AS usar_filtro_adx,
+            MAX(periodo_adx) AS periodo_adx,
+            MAX(adx_minimo) AS adx_minimo,
+
+            MAX(usar_filtro_rsi::int) AS usar_filtro_rsi,
+            MAX(periodo_rsi) AS periodo_rsi,
+            MAX(rsi_compra_min) AS rsi_compra_min,
+            MAX(rsi_venda_max) AS rsi_venda_max,
+
+            MAX(usar_filtro_sma::int) AS usar_filtro_sma,
+            MAX(periodo_sma_filtro) AS periodo_sma_filtro,
+
+            MAX(usar_filtro_volume::int) AS usar_filtro_volume,
+            MAX(volume_minimo) AS volume_minimo,
 
             STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
             COUNT(*) AS total_operacoes,
