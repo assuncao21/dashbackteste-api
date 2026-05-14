@@ -312,7 +312,7 @@ def listar_setups():
         SELECT
             id_setup_grupo,
             id_lote_importacao,
-            MIN(criado_em) AS data_execucao_coleta,
+            MIN(criado_em_brasilia) AS data_execucao_coleta,
             MAX(data_referencia) AS data_referencia,
             MAX(hora_referencia) AS hora_referencia,
             MAX(barras_para_varrer) AS barras_para_varrer,
