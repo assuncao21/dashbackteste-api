@@ -282,7 +282,44 @@ def listar_setups():
         cur = conn.cursor(cursor_factory=RealDictCursor)
 
         cur.execute("""
-    WITH setups AS (
+    WITH curva_operacoes AS (
+        SELECT
+            id_setup_grupo,
+            data_hora_entrada,
+            id_operacao,
+            SUM(COALESCE(resultado_pips, 0)) OVER (
+                PARTITION BY id_setup_grupo
+                ORDER BY data_hora_entrada, id_operacao
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS acumulado_pips
+        FROM operacoes
+        WHERE id_setup_grupo IS NOT NULL
+    ),
+
+    curva_drawdown AS (
+        SELECT
+            id_setup_grupo,
+            acumulado_pips,
+            GREATEST(
+                0,
+                MAX(acumulado_pips) OVER (
+                    PARTITION BY id_setup_grupo
+                    ORDER BY data_hora_entrada, id_operacao
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                )
+            ) AS pico_pips
+        FROM curva_operacoes
+    ),
+
+    drawdowns AS (
+        SELECT
+            id_setup_grupo,
+            ABS(MIN(acumulado_pips - pico_pips)) AS drawdown_pips
+        FROM curva_drawdown
+        GROUP BY id_setup_grupo
+    ),
+
+    setups AS (
         SELECT
             id_setup_grupo,
             MAX(nome_setup) AS nome_setup,
@@ -317,31 +354,13 @@ def listar_setups():
 
             COUNT(*) AS total_operacoes,
 
-            SUM(
-                CASE
-                    WHEN status_operacao = 'WIN'
-                    THEN 1
-                    ELSE 0
-                END
-            ) AS wins,
-
-            SUM(
-                CASE
-                    WHEN status_operacao = 'LOSS'
-                    THEN 1
-                    ELSE 0
-                END
-            ) AS losses,
+            SUM(CASE WHEN status_operacao = 'WIN' THEN 1 ELSE 0 END) AS wins,
+            SUM(CASE WHEN status_operacao = 'LOSS' THEN 1 ELSE 0 END) AS losses,
 
             ROUND(
                 100.0 *
-                SUM(
-                    CASE
-                        WHEN status_operacao = 'WIN'
-                        THEN 1
-                        ELSE 0
-                    END
-                ) / NULLIF(COUNT(*), 0),
+                SUM(CASE WHEN status_operacao = 'WIN' THEN 1 ELSE 0 END)
+                / NULLIF(COUNT(*), 0),
                 2
             ) AS winrate,
 
@@ -404,8 +423,11 @@ def listar_setups():
 
     SELECT
         s.*,
+        COALESCE(d.drawdown_pips, 0) AS drawdown_pips,
         c.coletas
     FROM setups s
+    LEFT JOIN drawdowns d
+        ON s.id_setup_grupo = d.id_setup_grupo
     LEFT JOIN coletas c
         ON s.id_setup_grupo = c.id_setup_grupo
     ORDER BY s.ultima_operacao DESC
