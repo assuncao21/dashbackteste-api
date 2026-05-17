@@ -359,7 +359,17 @@ def listar_setups():
             ROUND(
     COALESCE(SUM(resultado_pips), 0) / NULLIF(COUNT(*), 0),
     2
-) AS expectativa_pips,                
+) AS expectativa_pips,
+
+                    ROUND(
+    COALESCE(
+        SUM(CASE WHEN resultado_pips > 0 THEN resultado_pips ELSE 0 END)
+        /
+        NULLIF(ABS(SUM(CASE WHEN resultado_pips < 0 THEN resultado_pips ELSE 0 END)), 0),
+        0
+    ),
+    2
+) AS profit_factor,                
 
             SUM(CASE WHEN status_operacao = 'WIN' THEN 1 ELSE 0 END) AS wins,
             SUM(CASE WHEN status_operacao = 'LOSS' THEN 1 ELSE 0 END) AS losses,
