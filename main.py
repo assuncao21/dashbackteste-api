@@ -13,10 +13,13 @@ from slowapi.util import get_remote_address
 
 import auth
 import endpoint_analizar_contextos
+import endpoint_validacao
+import endpoint_otimizacao
+import endpoint_financeiro
 
 limiter = Limiter(key_func=get_remote_address)
 
-app = FastAPI(title="DashBackTeste API", version="1.0.0")
+app = FastAPI(title="DashBackTeste API", version="2.0.0")
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -31,6 +34,9 @@ app.add_middleware(
 
 app.include_router(auth.router, tags=["auth"])
 app.include_router(endpoint_analizar_contextos.router, tags=["analise"])
+app.include_router(endpoint_validacao.router, tags=["validacao"])
+app.include_router(endpoint_otimizacao.router, tags=["otimizacao"])
+app.include_router(endpoint_financeiro.router, tags=["financeiro"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
