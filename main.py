@@ -1,18 +1,36 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import psycopg2
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
-app = FastAPI()
+import auth
+import endpoint_analizar_contextos
 
+limiter = Limiter(key_func=get_remote_address)
+
+app = FastAPI(title="DashBackTeste API", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+_cors_origins = os.getenv("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth.router, tags=["auth"])
+app.include_router(endpoint_analizar_contextos.router, tags=["analise"])
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -245,7 +263,7 @@ def receber_operacao(data: dict):
         return {
             "status": "ok",
             "mensagem": "Operação registrada/atualizada com sucesso",
-            "id_operacao": data.get("IDOperacao")
+            "id_operacao": data.get("IDOperacao"),
         }
 
     except Exception as e:
@@ -253,30 +271,111 @@ def receber_operacao(data: dict):
 
 
 @app.post("/simular")
-def simular(data: dict):
+@limiter.limit("30/minute")
+def simular(request: Request, data: dict):
+    id_setup_grupo = data.get("id_setup_grupo") or data.get("id_setup")
+    if not id_setup_grupo:
+        raise HTTPException(status_code=400, detail="id_setup_grupo obrigatório")
 
-    return {
-        "resumo": {
-            "score": 74,
-            "win_rate": "61%",
-            "drawdown": "12%",
-            "total_operacoes": 87
-        },
-        "curva_capital": [
-            1000,
-            1012,
-            1005,
-            1020,
-            1045
-        ],
-        "alertas": [
-            "Amostra moderada",
-            "Drawdown aceitável"
-        ]
-    }
+    try:
+        conn = get_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        cur.execute("""
+            SELECT resultado_pips, status_operacao, data_hora_entrada
+            FROM operacoes
+            WHERE id_setup_grupo = %s
+            ORDER BY data_hora_entrada, id_operacao
+        """, (id_setup_grupo,))
+        ops = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        if not ops:
+            raise HTTPException(
+                status_code=404, detail="Nenhuma operação encontrada para este setup"
+            )
+
+        saldo = 0.0
+        curva_capital = [0.0]
+        pico = 0.0
+        max_drawdown = 0.0
+        wins = 0
+        losses = 0
+        total_ganhos = 0.0
+        total_perdas = 0.0
+
+        for op in ops:
+            pips = float(op["resultado_pips"] or 0)
+            saldo += pips
+            curva_capital.append(round(saldo, 2))
+
+            if saldo > pico:
+                pico = saldo
+            drawdown = pico - saldo
+            if drawdown > max_drawdown:
+                max_drawdown = drawdown
+
+            if op["status_operacao"] == "WIN":
+                wins += 1
+                total_ganhos += pips
+            elif op["status_operacao"] == "LOSS":
+                losses += 1
+                total_perdas += abs(pips)
+
+        total = len(ops)
+        win_rate = round(100.0 * wins / total, 2) if total > 0 else 0.0
+        profit_factor = round(total_ganhos / total_perdas, 2) if total_perdas > 0 else 0.0
+        expectativa = round(saldo / total, 2) if total > 0 else 0.0
+        recovery_factor = round(saldo / max_drawdown, 2) if max_drawdown > 0 else 0.0
+
+        score_wr = min(win_rate, 100) * 0.20
+        score_recovery = min(recovery_factor * 25, 100) * 0.30
+        score_ops = min(total ** 0.5 * 4, 100) * 0.10
+        score_exp = max(0.0, min(expectativa, 100)) * 0.20
+        score_pf = max(0.0, min(profit_factor * 50, 100)) * 0.20
+        score = round(score_wr + score_recovery + score_ops + score_exp + score_pf)
+
+        alertas = []
+        if total < 30:
+            alertas.append("Amostra pequena (menos de 30 operações) — resultados podem não ser representativos")
+        elif total < 100:
+            alertas.append("Amostra moderada")
+        if max_drawdown > 0 and saldo > 0 and max_drawdown > saldo * 0.5:
+            alertas.append("Drawdown elevado em relação ao resultado líquido")
+        elif max_drawdown > 0:
+            alertas.append("Drawdown aceitável")
+        if win_rate < 40:
+            alertas.append("Win rate abaixo de 40% — estratégia pode precisar de ajustes")
+        if profit_factor < 1:
+            alertas.append("Profit factor abaixo de 1 — operações perdendo mais do que ganham")
+
+        return {
+            "resumo": {
+                "score": score,
+                "win_rate": f"{win_rate}%",
+                "drawdown_pips": round(max_drawdown, 2),
+                "resultado_pips": round(saldo, 2),
+                "total_operacoes": total,
+                "wins": wins,
+                "losses": losses,
+                "profit_factor": profit_factor,
+                "expectativa_pips": expectativa,
+                "recovery_factor": recovery_factor,
+            },
+            "curva_capital": curva_capital,
+            "alertas": alertas,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/setups")
-def listar_setups():
+@limiter.limit("60/minute")
+def listar_setups(request: Request):
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -353,23 +452,23 @@ def listar_setups():
             STRING_AGG(DISTINCT ativo, ', ' ORDER BY ativo) AS ativos,
 
             COUNT(*) AS total_operacoes,
-                    
+
             COALESCE(SUM(resultado_pips), 0) AS resultado_pips_total,
 
             ROUND(
-    COALESCE(SUM(resultado_pips), 0) / NULLIF(COUNT(*), 0),
-    2
-) AS expectativa_pips,
+                COALESCE(SUM(resultado_pips), 0) / NULLIF(COUNT(*), 0),
+                2
+            ) AS expectativa_pips,
 
-                    ROUND(
-    COALESCE(
-        SUM(CASE WHEN resultado_pips > 0 THEN resultado_pips ELSE 0 END)
-        /
-        NULLIF(ABS(SUM(CASE WHEN resultado_pips < 0 THEN resultado_pips ELSE 0 END)), 0),
-        0
-    ),
-    2
-) AS profit_factor,                
+            ROUND(
+                COALESCE(
+                    SUM(CASE WHEN resultado_pips > 0 THEN resultado_pips ELSE 0 END)
+                    /
+                    NULLIF(ABS(SUM(CASE WHEN resultado_pips < 0 THEN resultado_pips ELSE 0 END)), 0),
+                    0
+                ),
+                2
+            ) AS profit_factor,
 
             SUM(CASE WHEN status_operacao = 'WIN' THEN 1 ELSE 0 END) AS wins,
             SUM(CASE WHEN status_operacao = 'LOSS' THEN 1 ELSE 0 END) AS losses,
@@ -443,15 +542,12 @@ def listar_setups():
         COALESCE(d.drawdown_pips, 0) AS drawdown_pips,
         c.coletas
     FROM setups s
-    LEFT JOIN drawdowns d
-        ON s.id_setup_grupo = d.id_setup_grupo
-    LEFT JOIN coletas c
-        ON s.id_setup_grupo = c.id_setup_grupo
+    LEFT JOIN drawdowns d ON s.id_setup_grupo = d.id_setup_grupo
+    LEFT JOIN coletas c ON s.id_setup_grupo = c.id_setup_grupo
     ORDER BY s.ultima_operacao DESC
 """)
 
         dados = cur.fetchall()
-
         cur.close()
         conn.close()
 
@@ -462,7 +558,8 @@ def listar_setups():
 
 
 @app.get("/operacoes")
-def listar_operacoes(limit: int = 100):
+@limiter.limit("60/minute")
+def listar_operacoes(request: Request, limit: int = 100):
     try:
         conn = get_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -475,7 +572,6 @@ def listar_operacoes(limit: int = 100):
         """, (limit,))
 
         dados = cur.fetchall()
-
         cur.close()
         conn.close()
 
